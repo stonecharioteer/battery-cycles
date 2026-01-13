@@ -115,12 +115,20 @@ def cheatsheet_cmd():
         "Show last 5 charging sessions",
     )
     sessions_table.add_row(
+        "battery-cycles sessions charging --all",
+        "Show all sessions (including incomplete)",
+    )
+    sessions_table.add_row(
         "battery-cycles sessions discharging",
         "Show recent discharging sessions",
     )
     sessions_table.add_row(
         "battery-cycles sessions discharging -n 5",
         "Show last 5 discharging sessions",
+    )
+    sessions_table.add_row(
+        "battery-cycles sessions discharging --all",
+        "Show all sessions (including incomplete)",
     )
 
     console.print()

@@ -184,11 +184,20 @@ Showing 5 readings
 ### View Charging Sessions
 
 ```bash
-# Show recent charging sessions
+# Show recent charging sessions (completed only)
 uv run battery-cycles sessions charging
 
-# Show recent discharging sessions
+# Show all charging sessions including incomplete ones
+uv run battery-cycles sessions charging --all
+
+# Show last 5 charging sessions
+uv run battery-cycles sessions charging -n 5
+
+# Show recent discharging sessions (completed only)
 uv run battery-cycles sessions discharging
+
+# Show all discharging sessions including incomplete ones
+uv run battery-cycles sessions discharging --all
 ```
 
 **Example Output (Charging Sessions):**
@@ -202,6 +211,17 @@ uv run battery-cycles sessions discharging
 │ 2026-01-12 09:15 AM │   15% │   95% │   2h 10m │ 39.1 Wh     │
 │ 2026-01-11 10:00 PM │   30% │  100% │   1h 30m │ 34.2 Wh     │
 └─────────────────────┴───────┴───────┴──────────┴─────────────┘
+```
+
+**Example Output (With --all flag, showing incomplete sessions):**
+```
+              Recent Charging Sessions (Including Incomplete)
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃ Date                ┃ From ┃ To ┃ Duration ┃ Energy Gained ┃   Status    ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ 2026-01-13 02:23 PM │  17% │  ? │      N/A │           N/A │ In Progress │
+│ 2026-01-13 11:30 AM │  25% │ 100% │   1h 45m │ 36.6 Wh     │ Complete    │
+└─────────────────────┴──────┴────┴──────────┴───────────────┴─────────────┘
 ```
 
 **Example Output (Discharging Sessions):**
@@ -330,6 +350,21 @@ The collector log file automatically rotates when it reaches 1 MB in size. The s
 1. **Data Collection**: Every minute, the cron job reads battery metrics from `/sys/class/power_supply/BAT0/` and stores them in SQLite
 2. **Session Detection**: The system detects state transitions (charging ↔ discharging) and creates session records
 3. **Visualization**: CLI commands query the database and display rich terminal output using the Rich library
+
+### Understanding Sessions
+
+A **session** is a database record that tracks a continuous period of battery activity:
+
+- **Charging Session**: Starts when the battery begins charging and ends when it stops. Tracks energy gained, duration, and capacity change.
+- **Discharging Session**: Starts when the battery begins discharging and ends when charging begins. Tracks energy consumed, average power draw, and capacity used.
+
+Sessions can be in two states:
+- **Complete**: The session has ended (battery state changed or system detected end)
+- **In Progress**: The session is currently active and hasn't ended yet
+
+By default, the `sessions` commands only show completed sessions. Use the `--all` or `-a` flag to see incomplete/in-progress sessions as well.
+
+**Note**: Sessions require continuous data collection via cron. If there are gaps in data collection (e.g., system was off), sessions may remain incomplete until the next state transition is detected.
 
 ## License
 

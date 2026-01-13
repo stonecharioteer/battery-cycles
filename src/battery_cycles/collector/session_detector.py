@@ -122,6 +122,61 @@ class SessionDetector:
         Args:
             reading: Battery reading that triggered the start
         """
+        # First, close any open discharge session
+        open_discharge = (
+            self.db.query(DischargeSession)
+            .filter(DischargeSession.is_complete == False)  # noqa: E712
+            .order_by(desc(DischargeSession.session_start))
+            .first()
+        )
+
+        if open_discharge:
+            logger.info(
+                f"Closing open discharge session before starting charge "
+                f"(started at {open_discharge.start_capacity}%)"
+            )
+            # Get the previous reading (just before this one) to close the session
+            prev_reading = (
+                self.db.query(BatteryReading)
+                .filter(BatteryReading.id < reading.id)
+                .order_by(desc(BatteryReading.id))
+                .first()
+            )
+
+            if prev_reading:
+                open_discharge.session_end = prev_reading.timestamp
+                open_discharge.end_capacity = prev_reading.capacity_percent
+                open_discharge.end_reading_id = prev_reading.id
+                open_discharge.is_complete = True
+
+                duration = prev_reading.timestamp - open_discharge.session_start
+                open_discharge.duration_minutes = int(duration.total_seconds() / 60)
+
+                # Calculate energy consumed if available
+                if (
+                    open_discharge.start_reading
+                    and prev_reading.energy_now
+                    and open_discharge.start_reading.energy_now
+                ):
+                    energy_consumed = (
+                        open_discharge.start_reading.energy_now
+                        - prev_reading.energy_now
+                    )
+                    open_discharge.energy_consumed = energy_consumed
+
+                    if open_discharge.duration_minutes > 0:
+                        energy_consumed_wh = energy_consumed / 1_000_000
+                        duration_hours = open_discharge.duration_minutes / 60
+                        open_discharge.average_power_draw = (
+                            energy_consumed_wh / duration_hours
+                        )
+
+                logger.info(
+                    f"Closed discharge session: {open_discharge.start_capacity}% -> "
+                    f"{open_discharge.end_capacity}% in {open_discharge.duration_minutes}m"
+                )
+                self.db.commit()
+
         logger.info(
             f"Starting charging session at {reading.capacity_percent}% "
             f"({reading.timestamp})"
@@ -186,6 +241,53 @@ class SessionDetector:
         Args:
             reading: Battery reading that triggered the start
         """
+        # First, close any open charging session
+        open_charging = (
+            self.db.query(ChargingSession)
+            .filter(ChargingSession.is_complete == False)  # noqa: E712
+            .order_by(desc(ChargingSession.session_start))
+            .first()
+        )
+
+        if open_charging:
+            logger.info(
+                f"Closing open charging session before starting discharge "
+                f"(started at {open_charging.start_capacity}%)"
+            )
+            # Get the previous reading (just before this one) to close the session
+            prev_reading = (
+                self.db.query(BatteryReading)
+                .filter(BatteryReading.id < reading.id)
+                .order_by(desc(BatteryReading.id))
+                .first()
+            )
+
+            if prev_reading:
+                open_charging.session_end = prev_reading.timestamp
+                open_charging.end_capacity = prev_reading.capacity_percent
+                open_charging.end_reading_id = prev_reading.id
+                open_charging.is_complete = True
+
+                duration = prev_reading.timestamp - open_charging.session_start
+                open_charging.duration_minutes = int(duration.total_seconds() / 60)
+
+                # Calculate energy gained if available
+                if (
+                    open_charging.start_reading
+                    and prev_reading.energy_now
+                    and open_charging.start_reading.energy_now
+                ):
+                    energy_gained = (
+                        prev_reading.energy_now - open_charging.start_reading.energy_now
+                    )
+                    open_charging.energy_gained = energy_gained
+
+                logger.info(
+                    f"Closed charging session: {open_charging.start_capacity}% -> "
+                    f"{open_charging.end_capacity}% in {open_charging.duration_minutes}m"
+                )
+                self.db.commit()
+
         logger.info(
             f"Starting discharge session at {reading.capacity_percent}% "
             f"({reading.timestamp})"
