@@ -65,12 +65,14 @@ def main():
         install_cron,
         sessions,
         status,
+        top,
     )
 
     # Register commands
     cli.add_command(init.init_cmd)
     cli.add_command(collect.collect_cmd)
     cli.add_command(status.status_cmd)
+    cli.add_command(top.top_cmd)
     cli.add_command(sessions.sessions_cmd)
     cli.add_command(history.history_cmd)
     cli.add_command(health.health_cmd)

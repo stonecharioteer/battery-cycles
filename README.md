@@ -73,6 +73,45 @@ uv run battery-cycles cheatsheet
 
 This displays an organized reference with command syntax, examples, and quick start guide.
 
+### View Comprehensive Dashboard
+
+```bash
+uv run battery-cycles top
+```
+
+Shows a comprehensive dashboard with all key battery metrics in one view:
+- Current battery status (capacity, power, voltage, health)
+- Last charging session details
+- Last discharging session details
+- Battery information (capacity, cycle count, manufacturer)
+
+This is the quickest way to see all your battery information at a glance.
+
+**Example Output:**
+```
+╭─────────────────────────── Current Battery Status ───────────────────────────╮
+│   Status:      Charging                                                      │
+│   Capacity:    17%                                                           │
+│   Power:       36.1 W                                                        │
+│   Voltage:     15.94 V                                                       │
+│   Energy:      8.5 Wh                                                        │
+│   Health:      78.8%                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭──────────── Last Charge ─────────────╮╭─────────── Last Discharge ───────────╮
+│ When:         2 hours ago            ││ When:         3 hours ago            │
+│ Range:        25% → 100%             ││ Range:        100% → 27%             │
+│ Duration:     1h 45m                 ││ Duration:     2h 30m                 │
+│ Energy:       36.6 Wh                ││ Avg Power:    38.5 W                 │
+│ Time:         2026-01-13 11:30 AM    ││ Energy:       35.6 Wh                │
+│ Used Since:   73%                    ││ Time:         2026-01-13 01:15 PM    │
+╰──────────────────────────────────────╯╰──────────────────────────────────────╯
+╭──────────────────────────── Battery Information ─────────────────────────────╮
+│   Current Capacity:       48.8 Wh        Total Readings:       150          │
+│   Design Capacity:        62.0 Wh        Charge Sessions:      12           │
+│   Cycle Count:            0              Manufacturer:         ASUSTeK       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
 ### View Current Battery Status
 
 ```bash
@@ -227,6 +266,9 @@ just fmt
 
 # Run type checking
 just typecheck
+
+# Show comprehensive dashboard
+just top
 
 # Show battery status
 just status

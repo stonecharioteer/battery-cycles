@@ -60,6 +60,10 @@ init:
 collect:
     uv run battery-cycles collect
 
+# Show comprehensive battery dashboard
+top:
+    uv run battery-cycles top
+
 # Show current battery status
 status:
     uv run battery-cycles status

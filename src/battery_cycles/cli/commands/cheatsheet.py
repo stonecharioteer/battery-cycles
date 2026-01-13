@@ -47,6 +47,10 @@ def cheatsheet_cmd():
     monitor_table.add_column("Description", style="white")
 
     monitor_table.add_row(
+        "battery-cycles top",
+        "Show comprehensive dashboard with all metrics",
+    )
+    monitor_table.add_row(
         "battery-cycles status",
         "Show current battery status and last charge info",
     )
