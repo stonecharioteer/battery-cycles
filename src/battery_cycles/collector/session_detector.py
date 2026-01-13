@@ -4,7 +4,7 @@ import logging
 from datetime import timedelta
 from enum import Enum
 
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from battery_cycles.database.models import (
@@ -82,6 +82,12 @@ class SessionDetector:
         prev_status = previous_reading.status
         curr_status = current_reading.status
 
+        # Direct state switch between charging and discharging
+        if prev_status == "Charging" and curr_status == "Discharging":
+            return StateTransition.START_DISCHARGING
+        if prev_status == "Discharging" and curr_status == "Charging":
+            return StateTransition.START_CHARGING
+
         # Charging transitions
         if prev_status != "Charging" and curr_status == "Charging":
             return StateTransition.START_CHARGING
@@ -116,6 +122,15 @@ class SessionDetector:
         # Always update ongoing sessions even without transitions
         self._update_active_sessions(reading)
 
+    def _get_previous_reading(self, reading_id: int) -> BatteryReading | None:
+        """Fetch the previous battery reading by id."""
+        return (
+            self.db.query(BatteryReading)
+            .filter(BatteryReading.id < reading_id)
+            .order_by(desc(BatteryReading.id))
+            .first()
+        )
+
     def _start_charging_session(self, reading: BatteryReading) -> None:
         """Start a new charging session.
 
@@ -125,7 +140,12 @@ class SessionDetector:
         # First, close any open discharge session
         open_discharge = (
             self.db.query(DischargeSession)
-            .filter(DischargeSession.is_complete == False)  # noqa: E712
+            .filter(
+                or_(
+                    DischargeSession.is_complete.is_(False),
+                    DischargeSession.session_end.is_(None),
+                )
+            )
             .order_by(desc(DischargeSession.session_start))
             .first()
         )
@@ -136,12 +156,7 @@ class SessionDetector:
                 f"(started at {open_discharge.start_capacity}%)"
             )
             # Get the previous reading (just before this one) to close the session
-            prev_reading = (
-                self.db.query(BatteryReading)
-                .filter(BatteryReading.id < reading.id)
-                .order_by(desc(BatteryReading.id))
-                .first()
-            )
+            prev_reading = self._get_previous_reading(reading.id)
 
             if prev_reading:
                 open_discharge.session_end = prev_reading.timestamp
@@ -200,7 +215,7 @@ class SessionDetector:
         # Find the most recent incomplete charging session
         session = (
             self.db.query(ChargingSession)
-            .filter(ChargingSession.is_complete == False)  # noqa: E712
+            .filter(ChargingSession.is_complete.is_(False))
             .order_by(desc(ChargingSession.session_start))
             .first()
         )
@@ -209,23 +224,25 @@ class SessionDetector:
             logger.warning("No active charging session to end")
             return
 
+        end_reading = self._get_previous_reading(reading.id) or reading
+
         # Update session
-        session.session_end = reading.timestamp
-        session.end_capacity = reading.capacity_percent
-        session.end_reading_id = reading.id
+        session.session_end = end_reading.timestamp
+        session.end_capacity = end_reading.capacity_percent
+        session.end_reading_id = end_reading.id
         session.is_complete = True
 
         # Calculate duration
-        duration = reading.timestamp - session.session_start
+        duration = end_reading.timestamp - session.session_start
         session.duration_minutes = int(duration.total_seconds() / 60)
 
         # Calculate energy gained if available
         if (
             session.start_reading
-            and reading.energy_now
+            and end_reading.energy_now
             and session.start_reading.energy_now
         ):
-            energy_gained = reading.energy_now - session.start_reading.energy_now
+            energy_gained = end_reading.energy_now - session.start_reading.energy_now
             session.energy_gained = energy_gained
 
         self.db.commit()
@@ -244,7 +261,12 @@ class SessionDetector:
         # First, close any open charging session
         open_charging = (
             self.db.query(ChargingSession)
-            .filter(ChargingSession.is_complete == False)  # noqa: E712
+            .filter(
+                or_(
+                    ChargingSession.is_complete.is_(False),
+                    ChargingSession.session_end.is_(None),
+                )
+            )
             .order_by(desc(ChargingSession.session_start))
             .first()
         )
@@ -255,12 +277,7 @@ class SessionDetector:
                 f"(started at {open_charging.start_capacity}%)"
             )
             # Get the previous reading (just before this one) to close the session
-            prev_reading = (
-                self.db.query(BatteryReading)
-                .filter(BatteryReading.id < reading.id)
-                .order_by(desc(BatteryReading.id))
-                .first()
-            )
+            prev_reading = self._get_previous_reading(reading.id)
 
             if prev_reading:
                 open_charging.session_end = prev_reading.timestamp
@@ -311,7 +328,7 @@ class SessionDetector:
         # Find the most recent incomplete discharge session
         session = (
             self.db.query(DischargeSession)
-            .filter(DischargeSession.is_complete == False)  # noqa: E712
+            .filter(DischargeSession.is_complete.is_(False))
             .order_by(desc(DischargeSession.session_start))
             .first()
         )
@@ -320,23 +337,25 @@ class SessionDetector:
             logger.warning("No active discharge session to end")
             return
 
+        end_reading = self._get_previous_reading(reading.id) or reading
+
         # Update session
-        session.session_end = reading.timestamp
-        session.end_capacity = reading.capacity_percent
-        session.end_reading_id = reading.id
+        session.session_end = end_reading.timestamp
+        session.end_capacity = end_reading.capacity_percent
+        session.end_reading_id = end_reading.id
         session.is_complete = True
 
         # Calculate duration
-        duration = reading.timestamp - session.session_start
+        duration = end_reading.timestamp - session.session_start
         session.duration_minutes = int(duration.total_seconds() / 60)
 
         # Calculate energy consumed and average power if available
         if (
             session.start_reading
-            and reading.energy_now
+            and end_reading.energy_now
             and session.start_reading.energy_now
         ):
-            energy_consumed = session.start_reading.energy_now - reading.energy_now
+            energy_consumed = session.start_reading.energy_now - end_reading.energy_now
             session.energy_consumed = energy_consumed
 
             # Calculate average power draw in Watts
@@ -373,7 +392,7 @@ class SessionDetector:
         # Close any incomplete charging sessions
         charging_sessions = (
             self.db.query(ChargingSession)
-            .filter(ChargingSession.is_complete == False)  # noqa: E712
+            .filter(ChargingSession.is_complete.is_(False))
             .all()
         )
 
@@ -386,12 +405,21 @@ class SessionDetector:
             duration = last_reading.timestamp - session.session_start
             session.duration_minutes = int(duration.total_seconds() / 60)
 
+            if (
+                session.start_reading
+                and last_reading.energy_now
+                and session.start_reading.energy_now
+            ):
+                session.energy_gained = (
+                    last_reading.energy_now - session.start_reading.energy_now
+                )
+
             logger.info(f"Closed charging session due to gap: {session}")
 
         # Close any incomplete discharge sessions
         discharge_sessions = (
             self.db.query(DischargeSession)
-            .filter(DischargeSession.is_complete == False)  # noqa: E712
+            .filter(DischargeSession.is_complete.is_(False))
             .all()
         )
 
@@ -403,6 +431,20 @@ class SessionDetector:
 
             duration = last_reading.timestamp - session.session_start
             session.duration_minutes = int(duration.total_seconds() / 60)
+
+            if (
+                session.start_reading
+                and last_reading.energy_now
+                and session.start_reading.energy_now
+            ):
+                energy_consumed = (
+                    session.start_reading.energy_now - last_reading.energy_now
+                )
+                session.energy_consumed = energy_consumed
+                if session.duration_minutes > 0:
+                    energy_consumed_wh = energy_consumed / 1_000_000
+                    duration_hours = session.duration_minutes / 60
+                    session.average_power_draw = energy_consumed_wh / duration_hours
 
             logger.info(f"Closed discharge session due to gap: {session}")
 

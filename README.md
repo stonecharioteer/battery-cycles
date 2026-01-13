@@ -184,6 +184,9 @@ Showing 5 readings
 ### View Charging Sessions
 
 ```bash
+# Show the current charging/discharging session
+uv run battery-cycles sessions
+
 # Show recent charging sessions (completed only)
 uv run battery-cycles sessions charging
 
@@ -198,6 +201,24 @@ uv run battery-cycles sessions discharging
 
 # Show all discharging sessions including incomplete ones
 uv run battery-cycles sessions discharging --all
+
+# Repair overlapping discharge sessions
+uv run battery-cycles sessions repair
+```
+
+**Example Output (Current Session):**
+```
+                        Current Session
+┌─────────────────┬──────────────────────────────────────────┐
+│ Status:         │ Charging                                 │
+│ Started:        │ 2026-01-13 02:23 PM (1h 12m ago)          │
+│ Duration:       │ 1h 12m                                   │
+│ Start:          │ 17%                                      │
+│ Current:        │ 64%                                      │
+│ Change:         │ 47%                                      │
+│ Energy:         │ 22.6 Wh                                  │
+│ Last Reading:   │ 2026-01-13 03:35 PM (1m ago)              │
+└─────────────────┴──────────────────────────────────────────┘
 ```
 
 **Example Output (Charging Sessions):**
@@ -235,6 +256,11 @@ uv run battery-cycles sessions discharging --all
 │ 2026-01-12 02:00 PM │   95% │ 20% │   3h 15m │  32.2 W │ 36.6 Wh   │
 │ 2026-01-11 03:30 PM │  100% │ 25% │   2h 45m │  36.1 W │ 36.6 Wh   │
 └─────────────────────┴───────┴─────┴──────────┴─────────┴───────────┘
+```
+
+**Example Output (Repair):**
+```
+Repaired 1 discharge session(s).
 ```
 
 ### View Battery Health
@@ -362,9 +388,9 @@ Sessions can be in two states:
 - **Complete**: The session has ended (battery state changed or system detected end)
 - **In Progress**: The session is currently active and hasn't ended yet
 
-By default, the `sessions` commands only show completed sessions. Use the `--all` or `-a` flag to see incomplete/in-progress sessions as well.
+`battery-cycles sessions` shows the current active session (charging or discharging). The `charging` and `discharging` subcommands only show completed sessions by default; use `--all` or `-a` to include in-progress sessions.
 
-**Note**: Sessions require continuous data collection via cron. If there are gaps in data collection (e.g., system was off), sessions may remain incomplete until the next state transition is detected.
+**Note**: Sessions require continuous data collection via cron. If there are gaps in data collection (e.g., system was off), sessions may remain incomplete until the next state transition is detected. You can run `battery-cycles sessions repair` to fix discharge sessions that overlap charging periods.
 
 ## License
 

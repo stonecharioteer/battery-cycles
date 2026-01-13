@@ -130,7 +130,11 @@ def generate_dashboard(config, console_width: int) -> Layout:
             # --- LEFT: Last Charging Session ---
             last_charge = (
                 session.query(ChargingSession)
-                .filter(ChargingSession.is_complete == True)  # noqa: E712
+                .filter(
+                    ChargingSession.is_complete.is_(True),
+                    ChargingSession.end_capacity.is_not(None),
+                    ChargingSession.end_capacity != ChargingSession.start_capacity,
+                )
                 .order_by(desc(ChargingSession.session_end))
                 .first()
             )
@@ -182,7 +186,11 @@ def generate_dashboard(config, console_width: int) -> Layout:
             # --- RIGHT: Last Discharging Session ---
             last_discharge = (
                 session.query(DischargeSession)
-                .filter(DischargeSession.is_complete == True)  # noqa: E712
+                .filter(
+                    DischargeSession.is_complete.is_(True),
+                    DischargeSession.end_capacity.is_not(None),
+                    DischargeSession.end_capacity != DischargeSession.start_capacity,
+                )
                 .order_by(desc(DischargeSession.session_end))
                 .first()
             )

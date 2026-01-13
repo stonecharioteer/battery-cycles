@@ -107,6 +107,10 @@ def cheatsheet_cmd():
     sessions_table.add_column("Description", style="white")
 
     sessions_table.add_row(
+        "battery-cycles sessions",
+        "Show current charging/discharging session",
+    )
+    sessions_table.add_row(
         "battery-cycles sessions charging",
         "Show recent charging sessions",
     )
@@ -129,6 +133,10 @@ def cheatsheet_cmd():
     sessions_table.add_row(
         "battery-cycles sessions discharging --all",
         "Show all sessions (including incomplete)",
+    )
+    sessions_table.add_row(
+        "battery-cycles sessions repair",
+        "Repair overlapping discharge sessions",
     )
 
     console.print()
@@ -182,10 +190,13 @@ def cheatsheet_cmd():
 5. View battery history:
    [cyan]battery-cycles history --week[/cyan]
 
-6. View charging sessions:
+6. View the current session:
+   [cyan]battery-cycles sessions[/cyan]
+
+7. View charging sessions:
    [cyan]battery-cycles sessions charging[/cyan]
 
-7. Monitor battery health:
+8. Monitor battery health:
    [cyan]battery-cycles health[/cyan]
 """,
             title="Getting Started",

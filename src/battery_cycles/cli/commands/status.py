@@ -178,15 +178,10 @@ def status_cmd(ctx):
                     format_time_ago(last_charge.session_end),
                 )
                 charge_table.add_row(
-                    "Charged To:",
+                    "Range:",
+                    f"{last_charge.start_capacity}% → "
                     f"[green]{last_charge.end_capacity}%[/green]",
                 )
-
-                if last_charge.duration_minutes:
-                    charge_table.add_row(
-                        "Duration:",
-                        format_duration(last_charge.duration_minutes),
-                    )
 
                 if last_charge.energy_gained:
                     energy_gained_wh = last_charge.energy_gained / 1_000_000
@@ -195,9 +190,23 @@ def status_cmd(ctx):
                         format_watt_hours(energy_gained_wh),
                     )
 
+                duration_str = ""
+                if last_charge.duration_minutes:
+                    duration_str = f" ({format_duration(last_charge.duration_minutes)})"
+
+                end_time_str = format_datetime(last_charge.session_end)
+                if (
+                    last_charge.session_end
+                    and last_charge.session_start
+                    and last_charge.session_end.date()
+                    == last_charge.session_start.date()
+                ):
+                    end_time_str = last_charge.session_end.strftime("%I:%M %p")
+
                 charge_table.add_row(
-                    "Started At:",
-                    format_datetime(last_charge.session_start),
+                    "Time:",
+                    f"{format_datetime(last_charge.session_start)} → "
+                    f"{end_time_str}{duration_str}",
                 )
 
                 # If currently discharging, show how long since last charge
