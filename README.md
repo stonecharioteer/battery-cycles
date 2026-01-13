@@ -81,6 +81,31 @@ uv run battery-cycles status
 
 Shows current battery level, status, power draw, voltage, health, and information about the last charging session.
 
+**Example Output:**
+```
+╭─────────────────────────────── Battery Status ───────────────────────────────╮
+│   Status:            Discharging                                             │
+│   Capacity:          27%                                                     │
+│   Power Draw:        41.5 W                                                  │
+│   Voltage:           15.94 V                                                 │
+│   Energy Now:        13.2 Wh                                                 │
+│   Battery Health:    78.8%                                                   │
+│   Cycle Count:       0                                                       │
+│   Battery:           ASUSTeK ASUS Battery                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Capacity ━━━━━━━━━━╸                               27%
+
+╭────────────────────────── Last Charging Session ─────────────────────────────╮
+│   Last Charged:        2 hours ago                                           │
+│   Charged To:          100%                                                  │
+│   Duration:            1h 45m                                                │
+│   Energy Gained:       36.6 Wh                                               │
+│   Started At:          2026-01-13 11:30 AM                                   │
+│   Discharging Since:   2 hours ago                                           │
+│   Capacity Used:       73%                                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
 ### View Battery History
 
 ```bash
@@ -94,6 +119,22 @@ uv run battery-cycles history --today
 uv run battery-cycles history --week
 ```
 
+**Example Output:**
+```
+                         Battery History
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃ Timestamp           ┃ Capacity ┃   Status    ┃  Power ┃ Health ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│ 2026-01-13 02:07 PM │      43% │ Discharging │ 34.9 W │  78.8% │
+│ 2026-01-13 02:08 PM │      41% │ Discharging │ 40.0 W │  78.8% │
+│ 2026-01-13 02:09 PM │      39% │ Discharging │ 44.2 W │  78.8% │
+│ 2026-01-13 02:10 PM │      38% │ Discharging │ 45.8 W │  78.8% │
+│ 2026-01-13 02:11 PM │      36% │ Discharging │ 47.6 W │  78.8% │
+└─────────────────────┴──────────┴─────────────┴────────┴────────┘
+
+Showing 5 readings
+```
+
 ### View Charging Sessions
 
 ```bash
@@ -104,6 +145,32 @@ uv run battery-cycles sessions charging
 uv run battery-cycles sessions discharging
 ```
 
+**Example Output (Charging Sessions):**
+```
+                    Recent Charging Sessions
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃ Date                ┃ From  ┃    To ┃ Duration ┃ Energy      ┃
+┃                     ┃       ┃       ┃          ┃ Gained      ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ 2026-01-13 11:30 AM │   25% │  100% │   1h 45m │ 36.6 Wh     │
+│ 2026-01-12 09:15 AM │   15% │   95% │   2h 10m │ 39.1 Wh     │
+│ 2026-01-11 10:00 PM │   30% │  100% │   1h 30m │ 34.2 Wh     │
+└─────────────────────┴───────┴───────┴──────────┴─────────────┘
+```
+
+**Example Output (Discharging Sessions):**
+```
+                    Recent Discharging Sessions
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━┳━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━┓
+┃ Date                ┃  From ┃  To ┃ Duration ┃ Avg     ┃ Energy    ┃
+┃                     ┃       ┃     ┃          ┃ Power   ┃ Used      ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━╇━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━┩
+│ 2026-01-13 01:15 PM │  100% │ 27% │   2h 30m │  38.5 W │ 35.6 Wh   │
+│ 2026-01-12 02:00 PM │   95% │ 20% │   3h 15m │  32.2 W │ 36.6 Wh   │
+│ 2026-01-11 03:30 PM │  100% │ 25% │   2h 45m │  36.1 W │ 36.6 Wh   │
+└─────────────────────┴───────┴─────┴──────────┴─────────┴───────────┘
+```
+
 ### View Battery Health
 
 ```bash
@@ -111,6 +178,25 @@ uv run battery-cycles health
 ```
 
 Shows battery health percentage, capacity degradation, cycle count, and statistics.
+
+**Example Output:**
+```
+╭─────────────────────────────── Battery Health ───────────────────────────────╮
+│   Current Health:      78.8%                                                 │
+│   Current Capacity:    48.8 Wh                                               │
+│   Design Capacity:     62.0 Wh                                               │
+│   Capacity Loss:       13.1 Wh (21.2%)                                       │
+│   Cycle Count:         0                                                     │
+│   Technology:          Li-ion                                                │
+│   Manufacturer:        ASUSTeK                                               │
+│   Model:               ASUS Battery                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭───────────────────────────────── Statistics ─────────────────────────────────╮
+│   Total Readings:    23                                                      │
+│   Health Change:     No change                                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
 
 ### Manual Data Collection
 
