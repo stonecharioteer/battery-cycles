@@ -284,4 +284,4 @@ The collector log file automatically rotates when it reaches 1 MB in size. The s
 
 ## License
 
-[Add your license here]
+MIT
