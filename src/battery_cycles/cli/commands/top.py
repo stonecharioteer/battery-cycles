@@ -1,10 +1,12 @@
 """Top command - comprehensive battery dashboard."""
 
 import logging
+import time
 
 import click
-from rich.console import Console
+from rich.console import Console, Group
 from rich.layout import Layout
+from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy import desc, func
@@ -55,12 +57,16 @@ def get_capacity_color(capacity: int) -> str:
         return "red"
 
 
-@click.command("top")
-@click.pass_context
-def top_cmd(ctx):
-    """Show comprehensive battery dashboard with all key metrics."""
-    config = ctx.obj["config"]
+def generate_dashboard(config, console_width: int) -> Layout:
+    """Generate the battery dashboard layout.
 
+    Args:
+        config: Application configuration
+        console_width: Terminal width for responsive layout
+
+    Returns:
+        Rich Layout with dashboard
+    """
     try:
         # Read current battery state
         reader = BatteryReader(config.battery_device)
@@ -79,11 +85,17 @@ def top_cmd(ctx):
                 Layout(name="footer", size=8),
             )
 
-            # Split main into left and right
-            layout["main"].split_row(
-                Layout(name="left"),
-                Layout(name="right"),
-            )
+            # Split main into left and right (stack vertically on narrow terminals)
+            if console_width >= 100:
+                layout["main"].split_row(
+                    Layout(name="left"),
+                    Layout(name="right"),
+                )
+            else:
+                layout["main"].split_column(
+                    Layout(name="left"),
+                    Layout(name="right"),
+                )
 
             # --- HEADER: Current Status ---
             status_color = get_status_color(reading.status)
@@ -114,14 +126,6 @@ def top_cmd(ctx):
                     "Health:",
                     f"[{health_color}]{health:.1f}%[/{health_color}]",
                 )
-
-            layout["header"].update(
-                Panel(
-                    header_table,
-                    title="[bold cyan]Current Battery Status[/bold cyan]",
-                    border_style="cyan",
-                )
-            )
 
             # --- LEFT: Last Charging Session ---
             last_charge = (
@@ -288,15 +292,88 @@ def top_cmd(ctx):
                 )
             )
 
-            # Render the layout
-            console.print()
-            console.print(layout)
-            console.print()
+            # Add timestamp to header
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+            header_content = Group(
+                header_table,
+                "",
+                f"[dim]Last updated: {timestamp}[/dim]",
+            )
+
+            layout["header"].update(
+                Panel(
+                    header_content,
+                    title="[bold cyan]Current Battery Status[/bold cyan]",
+                    border_style="cyan",
+                )
+            )
+
+            return layout
 
         finally:
             session.close()
 
     except Exception as e:
         logger.error(f"Failed to generate dashboard: {e}", exc_info=True)
-        console.print(f"[red]Error:[/red] {e}")
-        raise click.Abort()
+        # Return error layout
+        error_layout = Layout()
+        error_layout.update(
+            Panel(
+                f"[red]Error:[/red] {e}",
+                title="[bold red]Error[/bold red]",
+                border_style="red",
+            )
+        )
+        return error_layout
+
+
+@click.command("top")
+@click.option(
+    "--refresh",
+    "-r",
+    default=5,
+    help="Refresh interval in seconds (default: 5)",
+    type=int,
+)
+@click.option(
+    "--no-live",
+    is_flag=True,
+    help="Disable auto-refresh (show once and exit)",
+)
+@click.pass_context
+def top_cmd(ctx, refresh, no_live):
+    """Show comprehensive battery dashboard with all key metrics.
+
+    By default, the dashboard refreshes every 5 seconds. Press Ctrl+C to exit.
+    """
+    config = ctx.obj["config"]
+
+    if no_live:
+        # Show once and exit
+        layout = generate_dashboard(config, console.width)
+        console.print()
+        console.print(layout)
+        console.print()
+    else:
+        # Live updating mode
+        try:
+            with Live(
+                generate_dashboard(config, console.width),
+                console=console,
+                refresh_per_second=1 / refresh,
+                screen=True,
+            ) as live:
+                console.print(
+                    "\n[dim]Press Ctrl+C to exit. "
+                    f"Refreshing every {refresh} seconds...[/dim]\n"
+                )
+                while True:
+                    time.sleep(refresh)
+                    live.update(generate_dashboard(config, console.width))
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Dashboard stopped.[/yellow]")
+        except Exception as e:
+            logger.error(f"Failed to run dashboard: {e}", exc_info=True)
+            console.print(f"\n[red]Error:[/red] {e}")
+            raise click.Abort()

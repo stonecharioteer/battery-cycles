@@ -48,7 +48,15 @@ def cheatsheet_cmd():
 
     monitor_table.add_row(
         "battery-cycles top",
-        "Show comprehensive dashboard with all metrics",
+        "Live dashboard (refreshes every 5s, Ctrl+C to exit)",
+    )
+    monitor_table.add_row(
+        "battery-cycles top --refresh 10",
+        "Dashboard with custom refresh interval (10s)",
+    )
+    monitor_table.add_row(
+        "battery-cycles top --no-live",
+        "Show dashboard once without auto-refresh",
     )
     monitor_table.add_row(
         "battery-cycles status",

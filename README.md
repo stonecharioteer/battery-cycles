@@ -76,16 +76,23 @@ This displays an organized reference with command syntax, examples, and quick st
 ### View Comprehensive Dashboard
 
 ```bash
+# Live updating dashboard (refreshes every 5 seconds)
 uv run battery-cycles top
+
+# Custom refresh interval (in seconds)
+uv run battery-cycles top --refresh 10
+
+# Show once without live updates
+uv run battery-cycles top --no-live
 ```
 
 Shows a comprehensive dashboard with all key battery metrics in one view:
-- Current battery status (capacity, power, voltage, health)
+- Current battery status (capacity, power, voltage, health) with timestamp
 - Last charging session details
 - Last discharging session details
 - Battery information (capacity, cycle count, manufacturer)
 
-This is the quickest way to see all your battery information at a glance.
+The dashboard automatically refreshes and adapts to your terminal size. Press Ctrl+C to exit. This is the quickest way to monitor your battery in real-time.
 
 **Example Output:**
 ```
